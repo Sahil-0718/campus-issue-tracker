@@ -1,0 +1,16 @@
+# Run the application:  docker compose up -d
+# Use the image published by the CI/CD pipeline:  DOCKERHUB_USERNAME=<you> docker compose pull && docker compose up -d
+services:
+  tracker:
+    build: .
+    image: ${DOCKERHUB_USERNAME:-local}/campus-issue-tracker:latest
+    ports:
+      - "3000:3000"
+    environment:
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin123}
+    volumes:
+      - tracker-data:/data
+    restart: unless-stopped
+
+volumes:
+  tracker-data:

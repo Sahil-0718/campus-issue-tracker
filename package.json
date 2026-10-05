@@ -1,0 +1,15 @@
+{
+  "name": "campus-issue-tracker",
+  "version": "1.0.0",
+  "description": "Campus Digital Issue & Maintenance Tracker - a DevOps-based web application (GitHub Actions + Docker)",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node --disable-warning=ExperimentalWarning server.js",
+    "dev": "node --disable-warning=ExperimentalWarning --watch server.js",
+    "test": "node --disable-warning=ExperimentalWarning --test-reporter=spec --test \"tests/**/*.test.js\"",
+    "seed:demo": "node --disable-warning=ExperimentalWarning scripts/seed-demo.js"
+  },
+  "engines": { "node": ">=22.13" },
+  "license": "MIT"
+}
