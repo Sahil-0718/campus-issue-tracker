@@ -31,7 +31,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
-        uses: actions/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v3
 
       - name: Build Docker Image
         run: docker build -t campus-issue-tracker:test .
@@ -63,7 +63,7 @@ jobs:
 
       - name: Set up Docker Buildx
         if: env.DOCKERHUB_USERNAME != ''
-        uses: actions/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v3
         env:
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
 
