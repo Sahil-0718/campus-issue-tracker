@@ -18,6 +18,9 @@ jobs:
         with:
           node-version: '22'
 
+      - name: Install Dependencies
+        run: npm install
+
       - name: Verify Application Syntax
         run: node --check server.js
 
@@ -34,9 +37,12 @@ jobs:
         with:
           node-version: '22'
 
+      - name: Install Dependencies
+        run: npm install
+
       - name: Run Application Test
         run: |
-          node --disable-warning=ExperimentalWarning server.js > app.log 2>&1 &
+          npm start &
           sleep 5
           curl --fail http://localhost:3000/health || exit 1
           pkill -f "node server.js" || true
