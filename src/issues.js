@@ -55,8 +55,17 @@ export function createIssue(db, user, input, uploadDir) {
   if (location.length < 2 || location.length > 100) throw new HttpError(400, 'Location must be 2-100 characters');
   if (description.length < 5 || description.length > 1000) throw new HttpError(400, 'Description must be 5-1000 characters');
 
-  const deptName = departmentFor(category);
-  const dept = db.prepare('SELECT department_id FROM departments WHERE department_name = ?').get(deptName);
+  let dept = null;
+  if (input.department_id) {
+    dept = db.prepare('SELECT department_id, department_name FROM departments WHERE department_id = ?').get(Number(input.department_id));
+  }
+  if (!dept) {
+    const deptName = departmentFor(category);
+    dept = db.prepare('SELECT department_id, department_name FROM departments WHERE department_name = ?').get(deptName);
+  }
+  if (!dept) throw new HttpError(400, 'Please select a valid department');
+
+  const deptName = dept.department_name;
   const priority = resolvePriority(input.priority, description);
   const image = input.image ? saveImage(input.image, uploadDir) : null;
   const ts = now();
@@ -67,7 +76,7 @@ export function createIssue(db, user, input, uploadDir) {
        VALUES (?,?,?,?,?,?,?,?,?,?)`
     ).run(user.user_id, category, description, location, priority, dept.department_id, 'Submitted', image, ts, ts);
     const issueId = Number(r.lastInsertRowid);
-    logUpdate(db, issueId, 'Submitted', `Issue reported and automatically routed to the ${deptName} department`, user.user_id);
+    logUpdate(db, issueId, 'Submitted', `Issue reported and assigned to the ${deptName} department`, user.user_id);
     return issueId;
   });
   return getIssue(db, user, id);

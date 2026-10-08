@@ -34,13 +34,14 @@ before(async () => {
   await new Promise((r) => server.listen(0, r));
   base = `http://127.0.0.1:${server.address().port}`;
 
-  await api('POST', '/api/register', { body: { name: 'Asha Student', email: 'asha@student.edu', password: 'pass1234', role: 'student' } });
-  await api('POST', '/api/register', { body: { name: 'Ravi Student', email: 'ravi@student.edu', password: 'pass1234', role: 'student' } });
-  tokens.asha = await login('asha@student.edu', 'pass1234');
-  tokens.ravi = await login('ravi@student.edu', 'pass1234');
+  await api('POST', '/api/register', { body: { name: 'Asha Student', email: 'asha@gmail.com', password: 'Pass@1234', role: 'student' } });
+  await api('POST', '/api/register', { body: { name: 'Ravi Student', email: 'ravi@gmail.com', password: 'Pass@1234', role: 'student' } });
+  tokens.asha = await login('asha@gmail.com', 'Pass@1234');
+  tokens.ravi = await login('ravi@gmail.com', 'Pass@1234');
   tokens.admin = await login('admin@campus.edu', 'admin123');
-  tokens.electrical = await login('electrical@campus.edu', 'staff123');
   tokens.it = await login('it@campus.edu', 'staff123');
+  tokens.aiml = await login('aiml@campus.edu', 'staff123');
+  tokens.cse = await login('cse@campus.edu', 'staff123');
 });
 
 after(() => {
@@ -56,12 +57,12 @@ test('health check responds ok', async () => {
 
 test('registration validates input and rejects duplicates', async () => {
   assert.equal((await api('POST', '/api/register', { body: { name: 'A', email: 'bad', password: '1' } })).status, 400);
-  const dup = await api('POST', '/api/register', { body: { name: 'Asha Student', email: 'asha@student.edu', password: 'pass1234' } });
+  const dup = await api('POST', '/api/register', { body: { name: 'Asha Student', email: 'asha@gmail.com', password: 'Pass@1234' } });
   assert.equal(dup.status, 409);
 });
 
 test('login fails with a wrong password; protected routes need a token', async () => {
-  assert.equal((await api('POST', '/api/login', { body: { email: 'asha@student.edu', password: 'nope' } })).status, 401);
+  assert.equal((await api('POST', '/api/login', { body: { email: 'asha@gmail.com', password: 'nope' } })).status, 401);
   assert.equal((await api('GET', '/api/issues')).status, 401);
   assert.equal((await api('GET', '/api/issues', { token: 'garbage' })).status, 401);
 });
@@ -74,7 +75,7 @@ test('student submits an issue and it is auto-routed to the right department', a
     body: { category: 'AC / Fan', location: 'Room 204', description: 'Fan in Room 204 is not working.', priority: 'Medium' },
   });
   assert.equal(r.status, 201);
-  assert.equal(r.data.department_name, 'Electrical');
+  assert.equal(r.data.department_name, 'IT');
   assert.equal(r.data.status, 'Submitted');
   assert.equal(r.data.priority, 'Medium');
   assert.equal(r.data.updates.length, 1);
@@ -84,8 +85,8 @@ test('student submits an issue and it is auto-routed to the right department', a
 test('invalid issue submissions are rejected', async () => {
   const bad = (body) => api('POST', '/api/issues', { token: tokens.asha, body });
   assert.equal((await bad({ category: 'Nope', location: 'Lab', description: 'something broken' })).status, 400);
-  assert.equal((await bad({ category: 'Projector', location: '', description: 'something broken' })).status, 400);
-  assert.equal((await bad({ category: 'Projector', location: 'Lab 1', description: 'x' })).status, 400);
+  assert.equal((await bad({ category: 'Projector / Smart Board', location: '', description: 'something broken' })).status, 400);
+  assert.equal((await bad({ category: 'Projector / Smart Board', location: 'Lab 1', description: 'x' })).status, 400);
 });
 
 test('hazard descriptions are escalated to High priority', async () => {
@@ -99,7 +100,7 @@ test('hazard descriptions are escalated to High priority', async () => {
 test('image upload is stored and served; fake images are rejected', async () => {
   const ok = await api('POST', '/api/issues', {
     token: tokens.asha,
-    body: { category: 'Projector', location: 'Lab 302', description: 'Projector is not displaying output.', image: PNG },
+    body: { category: 'Projector / Smart Board', location: 'Lab 302', description: 'Projector is not displaying output.', image: PNG },
   });
   assert.equal(ok.status, 201);
   assert.match(ok.data.image, /^[a-f0-9]+\.png$/);
@@ -111,7 +112,7 @@ test('image upload is stored and served; fake images are rejected', async () => 
   const fake = await api('POST', '/api/issues', {
     token: tokens.asha,
     body: {
-      category: 'Projector', location: 'Lab 302', description: 'Projector is not displaying output.',
+      category: 'Projector / Smart Board', location: 'Lab 302', description: 'Projector is not displaying output.',
       image: 'data:image/png;base64,' + Buffer.from('not really a png').toString('base64')
     },
   });
@@ -127,21 +128,21 @@ test('students only see their own issues', async () => {
 });
 
 test('department staff only see their own department queue', async () => {
-  const elec = await api('GET', '/api/issues', { token: tokens.electrical });
-  assert.ok(elec.data.every((i) => i.department_name === 'Electrical'));
-  assert.ok(elec.data.some((i) => i.issue_id === issueId));
   const it = await api('GET', '/api/issues', { token: tokens.it });
   assert.ok(it.data.every((i) => i.department_name === 'IT'));
-  assert.equal((await api('GET', `/api/issues/${issueId}`, { token: tokens.it })).status, 403);
+  assert.ok(it.data.some((i) => i.issue_id === issueId));
+  const aiml = await api('GET', '/api/issues', { token: tokens.aiml });
+  assert.ok(aiml.data.every((i) => i.department_name === 'AIML'));
+  assert.equal((await api('GET', `/api/issues/${issueId}`, { token: tokens.aiml })).status, 403);
 });
 
 test('students cannot update issues; other departments cannot either', async () => {
   assert.equal((await api('PATCH', `/api/issues/${issueId}`, { token: tokens.asha, body: { status: 'Assigned' } })).status, 403);
-  assert.equal((await api('PATCH', `/api/issues/${issueId}`, { token: tokens.it, body: { status: 'Assigned' } })).status, 403);
+  assert.equal((await api('PATCH', `/api/issues/${issueId}`, { token: tokens.aiml, body: { status: 'Assigned' } })).status, 403);
 });
 
 test('staff move an issue through the workflow to Resolved', async () => {
-  const t = tokens.electrical;
+  const t = tokens.it;
   let r = await api('PATCH', `/api/issues/${issueId}`, { token: t, body: { status: 'Assigned' } });
   assert.equal(r.data.status, 'Assigned');
   assert.equal(r.data.updates.at(-1).remarks, 'Issue accepted by the department');
@@ -170,19 +171,19 @@ test('the student can see the resolution', async () => {
 test('only admins can reassign; reassignment is logged', async () => {
   const created = await api('POST', '/api/issues', {
     token: tokens.asha,
-    body: { category: 'Furniture', location: 'Room 12', description: 'Broken chair in the back row' },
+    body: { category: 'Classroom & Lab Infrastructure', location: 'Room 12', description: 'Broken chair in the back row' },
   });
   const id = created.data.issue_id;
   const meta = await api('GET', '/api/meta');
-  const plumbing = meta.data.departments.find((d) => d.department_name === 'Plumbing').department_id;
+  const aimlDept = meta.data.departments.find((d) => d.department_name === 'AIML').department_id;
 
-  const mt = await login('maintenance@campus.edu', 'staff123');
-  assert.equal((await api('PATCH', `/api/issues/${id}`, { token: mt, body: { department_id: plumbing } })).status, 403);
+  const cseStaff = await login('cse@campus.edu', 'staff123');
+  assert.equal((await api('PATCH', `/api/issues/${id}`, { token: cseStaff, body: { department_id: aimlDept } })).status, 403);
 
-  const r = await api('PATCH', `/api/issues/${id}`, { token: tokens.admin, body: { department_id: plumbing } });
+  const r = await api('PATCH', `/api/issues/${id}`, { token: tokens.admin, body: { department_id: aimlDept } });
   assert.equal(r.status, 200);
-  assert.equal(r.data.department_name, 'Plumbing');
-  assert.match(r.data.updates.at(-1).remarks, /Reassigned from Maintenance to Plumbing/);
+  assert.equal(r.data.department_name, 'AIML');
+  assert.match(r.data.updates.at(-1).remarks, /Reassigned from CSE to AIML/);
 });
 
 test('priority can be changed by staff and an empty update is rejected', async () => {
@@ -202,9 +203,9 @@ test('statistics reflect issue counts', async () => {
   assert.equal(admin.data.total, admin.data.pending + admin.data.resolved);
   assert.ok(admin.data.resolved >= 1);
   assert.ok(admin.data.avg_resolution_hours !== null);
-  assert.ok(admin.data.by_department.find((d) => d.name === 'Electrical').total >= 2);
+  assert.ok(admin.data.by_department.find((d) => d.name === 'IT').total >= 2);
 
-  const staff = await api('GET', '/api/stats', { token: tokens.electrical });
+  const staff = await api('GET', '/api/stats', { token: tokens.it });
   assert.equal(staff.data.by_department.length, 0);
   assert.ok(staff.data.total <= admin.data.total);
 
@@ -219,7 +220,7 @@ test('only admins can list users, and passwords are never exposed', async () => 
 });
 
 test('logout invalidates the session', async () => {
-  const t = await login('ravi@student.edu', 'pass1234');
+  const t = await login('ravi@gmail.com', 'Pass@1234');
   assert.equal((await api('GET', '/api/me', { token: t })).status, 200);
   await api('POST', '/api/logout', { token: t });
   assert.equal((await api('GET', '/api/me', { token: t })).status, 401);
@@ -235,7 +236,7 @@ test('static frontend is served and path traversal is blocked', async () => {
 test('smart classifier suggests category and detects hazard', async () => {
   const c1 = await api('POST', '/api/classify', { body: { text: 'The projector in room 101 has a flickering bulb and no display' } });
   assert.equal(c1.status, 200);
-  assert.equal(c1.data.category, 'Projector');
+  assert.equal(c1.data.category, 'Projector / Smart Board');
   assert.equal(c1.data.department, 'IT');
 
   const c2 = await api('POST', '/api/classify', { body: { text: 'Sparks and smoke coming from the power socket in the lab' } });
@@ -257,12 +258,14 @@ test('announcements can be fetched and updated by admin', async () => {
 });
 
 test('admin can create and delete users', async () => {
+  const meta = await api('GET', '/api/meta');
+  const itDeptId = meta.data.departments.find((d) => d.department_name === 'IT').department_id;
   const newUser = await api('POST', '/api/users', {
     token: tokens.admin,
-    body: { name: 'Karan Tech', email: 'karan@tech.edu', password: 'securePass123', role: 'staff', department_id: 1 }
+    body: { name: 'Karan Tech', email: 'karan@gmail.com', password: 'securePass123', role: 'staff', department_id: itDeptId }
   });
   assert.equal(newUser.status, 201);
-  assert.equal(newUser.data.email, 'karan@tech.edu');
+  assert.equal(newUser.data.email, 'karan@gmail.com');
   assert.equal(newUser.data.department_name, 'IT');
 
   const del = await api('DELETE', `/api/users/${newUser.data.user_id}`, { token: tokens.admin });

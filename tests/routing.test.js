@@ -9,11 +9,11 @@ test('every category routes to a department', () => {
 
 test('routing rules match the department table', () => {
   assert.equal(departmentFor('Wi-Fi / Network'), 'IT');
-  assert.equal(departmentFor('Projector'), 'IT');
-  assert.equal(departmentFor('AC / Fan'), 'Electrical');
-  assert.equal(departmentFor('Furniture'), 'Maintenance');
-  assert.equal(departmentFor('Water Leakage'), 'Plumbing');
-  assert.equal(departmentFor('Washroom'), 'Housekeeping');
+  assert.equal(departmentFor('Computer / Lab Equipment'), 'CSE');
+  assert.equal(departmentFor('AI / ML Models & Datasets'), 'AIML');
+  assert.equal(departmentFor('Projector / Smart Board'), 'IT');
+  assert.equal(departmentFor('AC / Fan'), 'IT');
+  assert.equal(departmentFor('Classroom & Lab Infrastructure'), 'CSE');
   assert.equal(departmentFor('Unknown'), null);
 });
 

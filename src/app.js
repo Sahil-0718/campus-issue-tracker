@@ -45,14 +45,33 @@ export function createApp({ dbPath = ':memory:', uploadDir = path.join(process.c
     const name = String(body.name ?? '').trim();
     const email = String(body.email ?? '').trim().toLowerCase();
     const password = String(body.password ?? '');
-    const role = body.role === 'faculty' ? 'faculty' : 'student';
+    const validRoles = ['student', 'faculty', 'staff', 'admin'];
+    const role = validRoles.includes(body.role) ? body.role : 'student';
+    let department_id = null;
+    if (role === 'staff') {
+      if (body.department_id) {
+        department_id = Number(body.department_id);
+      } else if (body.department_name) {
+        const d = db.prepare('SELECT department_id FROM departments WHERE department_name = ? COLLATE NOCASE').get(body.department_name);
+        if (d) department_id = d.department_id;
+      }
+      if (!department_id) {
+        // default to first department if not found
+        const first = db.prepare('SELECT department_id FROM departments ORDER BY department_id LIMIT 1').get();
+        if (first) department_id = first.department_id;
+      }
+    }
     if (name.length < 2 || name.length > 80) throw new HttpError(400, 'Name must be 2-80 characters');
-    if (!EMAIL_RE.test(email)) throw new HttpError(400, 'Enter a valid email address');
+    if (!EMAIL_RE.test(email) || !email.endsWith('@gmail.com')) throw new HttpError(400, 'Email must be a valid @gmail.com address');
     if (password.length < 6) throw new HttpError(400, 'Password must be at least 6 characters');
+    if (!/[A-Z]/.test(password)) throw new HttpError(400, 'Password must contain at least 1 uppercase letter');
+    if (!/[a-z]/.test(password)) throw new HttpError(400, 'Password must contain at least 1 lowercase letter');
+    if (!/[0-9]/.test(password)) throw new HttpError(400, 'Password must contain at least 1 number');
+    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`]/.test(password)) throw new HttpError(400, 'Password must contain at least 1 special character');
     if (db.prepare('SELECT 1 FROM users WHERE email = ?').get(email)) throw new HttpError(409, 'An account with this email already exists');
-    const r = db.prepare('INSERT INTO users (name, email, password, role, created_at) VALUES (?,?,?,?,?)')
-      .run(name, email, hashPassword(password), role, new Date().toISOString());
-    return [201, { user_id: Number(r.lastInsertRowid), name, email, role }];
+    const r = db.prepare('INSERT INTO users (name, email, password, role, department_id, created_at) VALUES (?,?,?,?,?,?)')
+      .run(name, email, hashPassword(password), role, department_id, new Date().toISOString());
+    return [201, { user_id: Number(r.lastInsertRowid), name, email, role, department_id }];
   });
 
   route('POST', '/api/login', { auth: false }, ({ body }) => {

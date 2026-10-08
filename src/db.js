@@ -1,7 +1,7 @@
 import { DatabaseSync } from 'node:sqlite';
 import { randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
 
-export const DEPARTMENTS = ['IT', 'Electrical', 'Maintenance', 'Plumbing', 'Housekeeping', 'Administration'];
+export const DEPARTMENTS = ['AIML', 'IT', 'CSE'];
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS departments (
@@ -85,6 +85,16 @@ function seed(db) {
   const insertDept = db.prepare('INSERT OR IGNORE INTO departments (department_name) VALUES (?)');
   DEPARTMENTS.forEach((d) => insertDept.run(d));
 
+  // Ensure only AIML, IT, and CSE exist in departments table
+  const placeholders = DEPARTMENTS.map(() => '?').join(',');
+  const fallbackDept = db.prepare('SELECT department_id FROM departments WHERE department_name = ?').get('IT') ||
+                       db.prepare('SELECT department_id FROM departments LIMIT 1').get();
+  if (fallbackDept) {
+    db.prepare(`UPDATE users SET department_id = ? WHERE department_id IN (SELECT department_id FROM departments WHERE department_name NOT IN (${placeholders}))`).run(fallbackDept.department_id, ...DEPARTMENTS);
+    db.prepare(`UPDATE issues SET department_id = ? WHERE department_id IN (SELECT department_id FROM departments WHERE department_name NOT IN (${placeholders}))`).run(fallbackDept.department_id, ...DEPARTMENTS);
+    db.prepare(`DELETE FROM departments WHERE department_name NOT IN (${placeholders})`).run(...DEPARTMENTS);
+  }
+
   const { n } = db.prepare('SELECT COUNT(*) AS n FROM users').get();
   if (n > 0) return;
 
@@ -104,7 +114,7 @@ function seed(db) {
   const { anc } = db.prepare('SELECT COUNT(*) AS anc FROM announcements').get();
   if (anc === 0) {
     db.prepare('INSERT INTO announcements (message, active, updated_at) VALUES (?,1,?)')
-      .run('📢 Notice: Scheduled electrical inspection in Engineering Block on Friday. Non-urgent issues will be processed within 24h.', now);
+      .run('📢 Notice: Scheduled lab and network inspection in Engineering Block. Non-urgent issues will be processed within 24h.', now);
   }
 }
 

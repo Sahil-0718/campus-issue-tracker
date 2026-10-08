@@ -3,20 +3,20 @@
 export const STATUSES = ['Submitted', 'Assigned', 'In Progress', 'Resolved'];
 export const PRIORITIES = ['Low', 'Medium', 'High'];
 
-// category -> responsible department
+// category -> responsible department (Only AIML, IT, and CSE)
 export const CATEGORIES = {
   'Wi-Fi / Network': 'IT',
-  'Computer / Lab Equipment': 'IT',
-  'Projector': 'IT',
-  'Electrical (Light / Socket)': 'Electrical',
-  'AC / Fan': 'Electrical',
-  'Furniture': 'Maintenance',
-  'Door / Window': 'Maintenance',
-  'Classroom Infrastructure': 'Maintenance',
-  'Water Leakage': 'Plumbing',
-  'Washroom': 'Housekeeping',
-  'Cleanliness': 'Housekeeping',
-  'Other': 'Administration',
+  'Computer / Lab Equipment': 'CSE',
+  'AI / ML Models & Datasets': 'AIML',
+  'GPU / Model Training Servers': 'AIML',
+  'AI Lab Workstations': 'AIML',
+  'Software / Development Tools': 'CSE',
+  'Projector / Smart Board': 'IT',
+  'Electrical (Light / Socket)': 'IT',
+  'AC / Fan': 'IT',
+  'Classroom & Lab Infrastructure': 'CSE',
+  'Cleanliness & General Maintenance': 'IT',
+  'Other': 'IT',
 };
 
 export function departmentFor(category) {
@@ -38,17 +38,17 @@ export function isForwardMove(from, to) {
 
 // AI-based issue classifier: analyzes free-text descriptions to suggest categories & detect hazards
 const KEYWORD_MAP = {
+  'AI / ML Models & Datasets': ['aiml', 'ai', 'ml', 'machine learning', 'deep learning', 'model', 'dataset', 'pytorch', 'tensorflow', 'cuda', 'training', 'neural'],
+  'GPU / Model Training Servers': ['gpu', 'cuda', 'vram', 'rtx', 'a100', 'server', 'compute', 'cluster'],
+  'AI Lab Workstations': ['ai lab', 'workstation', 'jupyter', 'anaconda', 'notebook'],
   'Wi-Fi / Network': ['wifi', 'wi-fi', 'internet', 'network', 'lan', 'ethernet', 'router', 'connection', 'offline', 'broadband', 'signal'],
   'Computer / Lab Equipment': ['computer', 'pc', 'monitor', 'keyboard', 'mouse', 'cpu', 'boot', 'ram', 'desktop', 'screen', 'software', 'hang'],
-  'Projector': ['projector', 'hdmi', 'vga', 'projection', 'blurry', 'flicker', 'display bulb'],
+  'Software / Development Tools': ['compiler', 'ide', 'vscode', 'linux', 'ubuntu', 'windows', 'c++', 'java', 'python', 'git', 'github'],
+  'Projector / Smart Board': ['projector', 'hdmi', 'vga', 'projection', 'blurry', 'flicker', 'display bulb', 'smart board'],
   'Electrical (Light / Socket)': ['light', 'tube', 'socket', 'switch', 'spark', 'bulb', 'plug', 'power', 'wiring', 'fuse', 'breaker', 'electricity'],
   'AC / Fan': ['fan', 'ac', 'air conditioner', 'cooling', 'capacitor', 'ventilation', 'remote', 'hot', 'warm'],
-  'Furniture': ['chair', 'desk', 'bench', 'table', 'stool', 'cupboard', 'podium', 'seat', 'drawer'],
-  'Door / Window': ['door', 'window', 'handle', 'lock', 'latch', 'hinge', 'glass', 'shut'],
-  'Classroom Infrastructure': ['whiteboard', 'blackboard', 'marker', 'chalk', 'podium', 'board', 'curtain', 'bench', 'rostrum'],
-  'Water Leakage': ['leak', 'leaking', 'water', 'pipe', 'ceiling', 'drip', 'drainage', 'seepage', 'flood', 'overflow', 'plumbing'],
-  'Washroom': ['washroom', 'toilet', 'flush', 'tap', 'basin', 'restroom', 'sink', 'urinal'],
-  'Cleanliness': ['clean', 'garbage', 'dustbin', 'trash', 'dirty', 'sweep', 'mop', 'waste', 'smell', 'litter', 'hygiene'],
+  'Classroom & Lab Infrastructure': ['chair', 'desk', 'bench', 'table', 'whiteboard', 'blackboard', 'door', 'window', 'podium', 'furniture'],
+  'Cleanliness & General Maintenance': ['clean', 'garbage', 'dustbin', 'trash', 'dirty', 'water', 'leak', 'toilet', 'washroom', 'hygiene', 'maintenance'],
 };
 
 export function aiClassify(text = '') {
@@ -68,7 +68,7 @@ export function aiClassify(text = '') {
   }
 
   const isHazard = HAZARD.test(text);
-  const department = matchedCategory ? departmentFor(matchedCategory) : (isHazard ? 'Electrical' : 'Administration');
+  const department = matchedCategory ? departmentFor(matchedCategory) : (isHazard ? 'IT' : 'CSE');
   const priority = isHazard ? 'High' : (highestScore > 0 ? 'Medium' : 'Low');
 
   return {

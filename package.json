@@ -7,7 +7,7 @@
   "scripts": {
     "start": "node --disable-warning=ExperimentalWarning server.js",
     "dev": "node --disable-warning=ExperimentalWarning --watch server.js",
-    "test": "node --disable-warning=ExperimentalWarning --test-reporter=spec --test \"tests/**/*.test.js\"",
+    "test": "node --disable-warning=ExperimentalWarning --test-reporter=spec --test tests/routing.test.js tests/api.test.js",
     "seed:demo": "node --disable-warning=ExperimentalWarning scripts/seed-demo.js"
   },
   "engines": { "node": ">=22.13" },
